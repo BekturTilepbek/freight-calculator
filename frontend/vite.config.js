@@ -1,17 +1,18 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
   plugins: [vue()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
-    // Для hot-reload в Docker на Windows/WSL — следит за изменениями через polling
-    watch: {
-      usePolling: true,
-    },
-    // Прокси — самая важная часть. Все запросы фронта на /api/*
-    // Vite перенаправит на backend-контейнер. Никаких CORS-проблем.
+    watch: { usePolling: true },
     proxy: {
       '/api': {
         target: 'http://backend:8000',

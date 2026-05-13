@@ -1,0 +1,25 @@
+@import 'primeicons/primeicons.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    @apply bg-surface-50 text-surface-900;
+  }
+  html.p-dark, .p-dark body {
+    @apply bg-surface-950 text-surface-0;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Кастомный скроллбар — мелочь, которая сильно поднимает ощущение качества */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { @apply bg-surface-100 dark:bg-surface-900; }
+  ::-webkit-scrollbar-thumb { @apply bg-surface-300 dark:bg-surface-700 rounded; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-surface-400 dark:bg-surface-600; }
+}
