@@ -2,12 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import calculations
+from app.api.routes import calculations, clients, orders
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# CORS на этапе разработки — широко открыт.
-# В проде ограничим конкретным доменом фронта.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,6 +15,8 @@ app.add_middleware(
 )
 
 app.include_router(calculations.router, prefix=settings.API_V1_PREFIX)
+app.include_router(clients.router, prefix=settings.API_V1_PREFIX)
+app.include_router(orders.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
