@@ -9,8 +9,6 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
 import ProgressSpinner from 'primevue/progressspinner'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
 
 import { ordersApi } from '@/api/orders'
 import { fmtMoney, fmtNumber, fmtDate, STATUS_MAP } from '@/composables/useFormatters'
@@ -96,14 +94,14 @@ onMounted(load)
     <Card>
       <template #content>
         <div class="flex flex-wrap gap-3">
-          <IconField class="flex-1 min-w-[260px]">
-            <InputIcon class="pi pi-search" />
+          <div class="relative flex-1 min-w-[260px]">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 pointer-events-none z-10" />
             <InputText
               v-model="search"
               placeholder="Поиск по номеру или маршруту..."
-              class="w-full"
+              class="w-full !pl-10"
             />
-          </IconField>
+          </div>
           <Select
             v-model="statusFilter"
             :options="statusOptions"

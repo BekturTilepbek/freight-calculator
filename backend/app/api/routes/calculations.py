@@ -12,6 +12,8 @@ from app.schemas.calculation import CalculationOut
 from app.services.cost_calculator import (
     calculate_trip_cost, RouteData, CostComponent
 )
+from app.api.deps import get_current_user, require_role
+from app.models.user import User, UserRole
 
 router = APIRouter(prefix="/calculations", tags=["calculations"])
 
@@ -86,7 +88,7 @@ async def _generate_order_number(db: AsyncSession) -> str:
 # --- Endpoints ---
 
 @router.post("/estimate", response_model=CalculationResponse)
-async def estimate_trip_cost(payload: CalculationRequest):
+async def estimate_trip_cost(payload: CalculationRequest, current_user: User = Depends(get_current_user),):
     """Предварительный расчет — без сохранения."""
     return _do_calculation(payload)
 
@@ -95,6 +97,7 @@ async def estimate_trip_cost(payload: CalculationRequest):
 async def save_as_order(
     payload: SaveAsOrderRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """Создает новую заявку и сохраняет расчет, привязанный к ней."""
     from app.models.order import Order, OrderStatus

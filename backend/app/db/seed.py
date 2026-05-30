@@ -52,11 +52,27 @@ STATUSES_WEIGHTED = (
 
 async def seed():
     async with AsyncSessionLocal() as db:
-        # Проверяем, не наполняли ли уже
         existing = (await db.execute(select(Client).limit(1))).scalar_one_or_none()
         if existing:
             print("⚠️  База уже содержит данные. Сидер пропущен.")
             return
+
+        # ===== Пользователи =====
+        from app.core.security import hash_password
+        from app.models.user import User, UserRole
+
+        users_data = [
+            ("admin@freight.app", "admin123", "Анна Администратор", UserRole.ADMIN),
+            ("dispatcher@freight.app", "dispatcher123", "Дмитрий Диспетчер", UserRole.DISPATCHER),
+            ("driver@freight.app", "driver123", "Виктор Водитель", UserRole.DRIVER),
+        ]
+        for email, password, name, role in users_data:
+            db.add(User(
+                email=email,
+                password_hash=hash_password(password),
+                full_name=name,
+                role=role,
+            ))
 
         # Клиенты
         clients = []
@@ -101,7 +117,11 @@ async def seed():
             db.add(order)
 
         await db.commit()
-        print(f"✅ Создано: {len(CLIENTS)} клиентов, {len(BROKERS)} брокеров, 40 заявок")
+        print(f"✅ Создано: 3 пользователя, {len(CLIENTS)} клиентов, {len(BROKERS)} брокеров, 40 заявок")
+        print("\n🔑 Тестовые учетные записи:")
+        print("   admin@freight.app      / admin123      (Администратор)")
+        print("   dispatcher@freight.app / dispatcher123 (Диспетчер)")
+        print("   driver@freight.app     / driver123     (Водитель)")
 
 
 if __name__ == "__main__":

@@ -1,23 +1,56 @@
 <script setup>
-import { ref, computed } from 'vue'
-import { useRoute, RouterLink, RouterView } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 import Button from 'primevue/button'
 import { useTheme } from '@/composables/useTheme'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 const { isDark, toggle } = useTheme()
-const sidebarOpen = ref(true)
 
-const menu = [
-  { label: 'Дашборд',    icon: 'pi pi-th-large',    to: '/app/dashboard' },
-  { label: 'Калькулятор', icon: 'pi pi-calculator',  to: '/app/calculator' },
-  { label: 'Заявки',     icon: 'pi pi-truck',       to: '/app/orders' },
-  { label: 'Клиенты',    icon: 'pi pi-building',    to: '/app/clients',    disabled: true },
-  { label: 'Водители',   icon: 'pi pi-users',       to: '/app/drivers',    disabled: true },
-  { label: 'Отчеты',     icon: 'pi pi-chart-bar',   to: '/app/reports',    disabled: true },
-]
+const sidebarOpen = ref(true)
+const userMenuOpen = ref(false)
+const userMenuRef = ref(null)
 
 const pageTitle = computed(() => route.meta.title || '')
+
+const userInitials = computed(() => {
+  if (!auth.user?.full_name) return '?'
+  return auth.user.full_name
+    .split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase()
+})
+
+const ROLE_LABELS = {
+  admin: 'Администратор',
+  dispatcher: 'Диспетчер',
+  driver: 'Водитель',
+}
+const roleLabel = computed(() => ROLE_LABELS[auth.user?.role] || '')
+
+function handleLogout() {
+  auth.logout()
+  router.push({ name: 'login' })
+}
+
+function onClickOutside(e) {
+  if (userMenuRef.value && !userMenuRef.value.contains(e.target)) {
+    userMenuOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', onClickOutside))
+onUnmounted(() => document.removeEventListener('click', onClickOutside))
+
+const menu = [
+  { label: 'Дашборд',     icon: 'pi pi-th-large',   to: '/app/dashboard' },
+  { label: 'Калькулятор', icon: 'pi pi-calculator', to: '/app/calculator' },
+  { label: 'Заявки',      icon: 'pi pi-truck',      to: '/app/orders' },
+  { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients',  disabled: true },
+  { label: 'Водители',    icon: 'pi pi-users',      to: '/app/drivers',  disabled: true },
+  { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports',  disabled: true },
+]
 </script>
 
 <template>
@@ -87,20 +120,42 @@ const pageTitle = computed(() => route.meta.title || '')
         <div class="flex items-center gap-2">
           <Button
             :icon="isDark ? 'pi pi-sun' : 'pi pi-moon'"
-            text
-            rounded
-            severity="secondary"
+            text rounded severity="secondary"
             @click="toggle"
-            :aria-label="isDark ? 'Светлая тема' : 'Темная тема'"
           />
           <Button icon="pi pi-bell" text rounded severity="secondary" />
-          <div class="flex items-center gap-2 pl-2 ml-2 border-l border-surface-200 dark:border-surface-800">
-            <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
-              ДА
-            </div>
-            <div class="hidden md:block leading-tight">
-              <div class="text-sm font-medium text-surface-900 dark:text-surface-0">Диспетчер</div>
-              <div class="text-xs text-surface-500">admin@freight.local</div>
+
+          <!-- Меню пользователя -->
+          <div class="relative" ref="userMenuRef">
+            <button
+              class="flex items-center gap-2 pl-2 ml-2 border-l border-surface-200 dark:border-surface-800 hover:opacity-80 transition-opacity"
+              @click="userMenuOpen = !userMenuOpen"
+            >
+              <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
+                {{ userInitials }}
+              </div>
+              <div class="hidden md:block leading-tight text-left">
+                <div class="text-sm font-medium text-surface-900 dark:text-surface-0">{{ auth.user?.full_name }}</div>
+                <div class="text-xs text-surface-500">{{ roleLabel }}</div>
+              </div>
+              <i class="pi pi-chevron-down text-xs text-surface-400 hidden md:block" />
+            </button>
+
+            <div
+              v-if="userMenuOpen"
+              class="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800 rounded-lg shadow-xl py-1.5 z-50"
+            >
+              <div class="px-3 py-2 border-b border-surface-200 dark:border-surface-800 md:hidden">
+                <div class="font-medium text-sm">{{ auth.user?.full_name }}</div>
+                <div class="text-xs text-surface-500">{{ auth.user?.email }}</div>
+              </div>
+              <button
+                class="w-full px-3 py-2 text-left text-sm hover:bg-surface-100 dark:hover:bg-surface-800 flex items-center gap-2 text-red-600 dark:text-red-400"
+                @click="handleLogout"
+              >
+                <i class="pi pi-sign-out" />
+                Выйти
+              </button>
             </div>
           </div>
         </div>

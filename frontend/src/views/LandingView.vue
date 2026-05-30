@@ -47,7 +47,7 @@ const features = [
           text rounded severity="secondary"
           @click="toggle"
         />
-        <RouterLink to="/app/dashboard">
+        <RouterLink to="/login">
           <Button label="Войти в систему" icon="pi pi-arrow-right" iconPos="right" />
         </RouterLink>
       </div>
@@ -71,10 +71,10 @@ const features = [
         в одной форме. С историей, документами и аналитикой.
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3">
-        <RouterLink to="/app/calculator">
+        <RouterLink to="/login">
           <Button label="Открыть калькулятор" icon="pi pi-calculator" size="large" />
         </RouterLink>
-        <RouterLink to="/app/dashboard">
+        <RouterLink to="/login">
           <Button label="Посмотреть дашборд" severity="secondary" outlined size="large" />
         </RouterLink>
       </div>
