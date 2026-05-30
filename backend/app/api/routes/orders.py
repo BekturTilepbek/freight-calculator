@@ -53,3 +53,16 @@ async def delete_order(order_id: int, db: AsyncSession = Depends(get_db)):
     if not obj:
         raise HTTPException(404, "Order not found")
     await crud_order.delete(db, obj)
+
+
+from app.crud import calculation as crud_calc
+from app.schemas.calculation import CalculationOut
+
+
+@router.get("/{order_id}/calculations", response_model=list[CalculationOut])
+async def get_order_calculations(order_id: int, db: AsyncSession = Depends(get_db)):
+    """История расчетов по заявке."""
+    obj = await crud_order.get(db, order_id)
+    if not obj:
+        raise HTTPException(404, "Order not found")
+    return await crud_calc.get_by_order(db, order_id)

@@ -11,7 +11,7 @@ const sidebarOpen = ref(true)
 const menu = [
   { label: 'Дашборд',    icon: 'pi pi-th-large',    to: '/app/dashboard' },
   { label: 'Калькулятор', icon: 'pi pi-calculator',  to: '/app/calculator' },
-  { label: 'Заявки',     icon: 'pi pi-truck',       to: '/app/orders',     disabled: true },
+  { label: 'Заявки',     icon: 'pi pi-truck',       to: '/app/orders' },
   { label: 'Клиенты',    icon: 'pi pi-building',    to: '/app/clients',    disabled: true },
   { label: 'Водители',   icon: 'pi pi-users',       to: '/app/drivers',    disabled: true },
   { label: 'Отчеты',     icon: 'pi pi-chart-bar',   to: '/app/reports',    disabled: true },
