@@ -24,7 +24,9 @@ async function handleLogin() {
   error.value = null
   try {
     await auth.login(form.email, form.password)
-    const redirect = route.query.redirect || { name: 'dashboard' }
+    const isDriver = auth.user?.role === 'driver'
+    const defaultRoute = isDriver ? { name: 'driver-rides' } : { name: 'dashboard' }
+    const redirect = route.query.redirect || defaultRoute
     router.push(redirect)
   } catch (e) {
     error.value = e.response?.data?.detail || 'Ошибка входа'

@@ -49,7 +49,7 @@ const menu = computed(() => {
   if (isDriver.value) {
     // Водителю — только дашборд с его рейсами
     return [
-      { label: 'Мои рейсы', icon: 'pi pi-truck', to: '/app/dashboard' },
+      { label: 'Мои рейсы', icon: 'pi pi-truck', to: '/app/my-rides' },
     ]
   }
   return [

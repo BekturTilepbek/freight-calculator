@@ -4,44 +4,35 @@ import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import ProgressSpinner from 'primevue/progressspinner'
-import Toast from 'primevue/toast'
-import { useToast } from 'primevue/usetoast'
 
 import { ordersApi } from '@/api/orders'
 import { fmtMoney, fmtNumber, fmtDate, STATUS_MAP } from '@/composables/useFormatters'
 
-const toast = useToast()
 const orders = ref([])
 const loading = ref(true)
 const updatingId = ref(null)
+const errorMsg = ref(null)
 
 async function load() {
   loading.value = true
+  errorMsg.value = null
   try {
     orders.value = await ordersApi.myAssigned()
   } catch (e) {
-    toast.add({
-      severity: 'error', summary: 'Ошибка',
-      detail: 'Не удалось загрузить рейсы', life: 3000,
-    })
+    errorMsg.value = e.response?.data?.detail || 'Не удалось загрузить рейсы'
   } finally {
     loading.value = false
   }
 }
 
-const grouped = computed(() => {
-  const result = { active: [], delivered: [] }
-  for (const o of orders.value) {
-    if (o.status === 'delivered' || o.status === 'cancelled') {
-      result.delivered.push(o)
-    } else {
-      result.active.push(o)
-    }
-  }
-  return result
-})
+const activeOrders = computed(() =>
+  orders.value.filter(o => o.status !== 'delivered' && o.status !== 'cancelled')
+)
 
-// Следующий разрешенный статус для водителя
+const completedOrders = computed(() =>
+  orders.value.filter(o => o.status === 'delivered' || o.status === 'cancelled')
+)
+
 function nextStatus(current) {
   if (current === 'assigned') return { label: 'Начать рейс', value: 'in_transit', icon: 'pi pi-play' }
   if (current === 'in_transit') return { label: 'Завершить рейс', value: 'delivered', icon: 'pi pi-check' }
@@ -53,32 +44,30 @@ async function changeStatus(order, newStatus) {
   try {
     const updated = await ordersApi.changeStatus(order.id, newStatus)
     Object.assign(order, updated)
-    toast.add({
-      severity: 'success',
-      summary: 'Статус обновлен',
-      detail: STATUS_MAP[newStatus]?.label,
-      life: 2000,
-    })
   } catch (e) {
-    toast.add({
-      severity: 'error', summary: 'Ошибка',
-      detail: e.response?.data?.detail || 'Не удалось сменить статус', life: 3000,
-    })
+    errorMsg.value = e.response?.data?.detail || 'Не удалось сменить статус'
+    setTimeout(() => (errorMsg.value = null), 3000)
   } finally {
     updatingId.value = null
   }
 }
+
+onMounted(load)
 </script>
 
 <template>
-  <Toast />
-
   <div v-if="loading" class="flex justify-center py-20">
     <ProgressSpinner />
   </div>
 
   <div v-else class="space-y-6">
-    <!-- Greeting -->
+    <!-- Error banner -->
+    <div v-if="errorMsg" class="p-4 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded-lg flex items-center gap-2">
+      <i class="pi pi-exclamation-circle" />
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <!-- Summary card -->
     <Card>
       <template #content>
         <div class="flex items-center justify-between flex-wrap gap-3">
@@ -88,11 +77,11 @@ async function changeStatus(order, newStatus) {
             </div>
             <div>
               <div class="text-sm text-surface-500">Активных рейсов</div>
-              <div class="text-2xl font-bold">{{ grouped.active.length }}</div>
+              <div class="text-2xl font-bold">{{ activeOrders.length }}</div>
             </div>
           </div>
           <div class="text-sm text-surface-500">
-            Завершено всего: <span class="font-semibold text-surface-900 dark:text-surface-0">{{ grouped.delivered.length }}</span>
+            Завершено всего: <span class="font-semibold text-surface-900 dark:text-surface-0">{{ completedOrders.length }}</span>
           </div>
         </div>
       </template>
@@ -104,14 +93,14 @@ async function changeStatus(order, newStatus) {
         <i class="pi pi-clock text-primary-500" /> Активные рейсы
       </h3>
 
-      <div v-if="grouped.active.length === 0" class="text-center py-12 text-surface-500">
-        <i class="pi pi-check-circle text-4xl text-green-500 mb-2" />
+      <div v-if="activeOrders.length === 0" class="text-center py-12 text-surface-500">
+        <i class="pi pi-check-circle text-4xl text-green-500 mb-2 block" />
         <p>Нет активных рейсов. Хорошего отдыха!</p>
       </div>
 
       <div v-else class="space-y-3">
         <div
-          v-for="order in grouped.active"
+          v-for="order in activeOrders"
           :key="order.id"
           class="p-5 rounded-2xl bg-white dark:bg-surface-900 border border-surface-200 dark:border-surface-800"
         >
@@ -120,13 +109,12 @@ async function changeStatus(order, newStatus) {
               <div class="flex items-center gap-2 mb-1">
                 <span class="font-mono font-bold text-primary-600 dark:text-primary-400">{{ order.order_number }}</span>
                 <Tag
-                  :value="STATUS_MAP[order.status]?.label"
-                  :severity="STATUS_MAP[order.status]?.severity"
-                  :icon="STATUS_MAP[order.status]?.icon"
+                  :value="STATUS_MAP[order.status]?.label || order.status"
+                  :severity="STATUS_MAP[order.status]?.severity || 'secondary'"
                 />
               </div>
               <div class="text-sm text-surface-500">
-                Забор: {{ fmtDate(order.created_at) }}
+                Создана: {{ fmtDate(order.created_at) }}
               </div>
             </div>
             <div class="text-right">
@@ -137,7 +125,6 @@ async function changeStatus(order, newStatus) {
             </div>
           </div>
 
-          <!-- Route -->
           <div class="flex items-start gap-3 mb-4">
             <div class="flex flex-col items-center pt-1">
               <div class="w-2.5 h-2.5 rounded-full bg-primary-500" />
@@ -160,7 +147,6 @@ async function changeStatus(order, newStatus) {
             </div>
           </div>
 
-          <!-- Action -->
           <div v-if="nextStatus(order.status)" class="flex justify-end">
             <Button
               :label="nextStatus(order.status).label"
@@ -173,8 +159,8 @@ async function changeStatus(order, newStatus) {
       </div>
     </div>
 
-    <!-- Recent delivered -->
-    <div v-if="grouped.delivered.length">
+    <!-- Completed rides -->
+    <div v-if="completedOrders.length">
       <h3 class="text-lg font-semibold mb-3 flex items-center gap-2">
         <i class="pi pi-check text-green-500" /> Последние завершенные
       </h3>
@@ -182,7 +168,7 @@ async function changeStatus(order, newStatus) {
         <template #content>
           <div class="space-y-2">
             <div
-              v-for="order in grouped.delivered.slice(0, 5)"
+              v-for="order in completedOrders.slice(0, 5)"
               :key="order.id"
               class="flex items-center justify-between p-3 rounded-lg hover:bg-surface-50 dark:hover:bg-surface-800"
             >
