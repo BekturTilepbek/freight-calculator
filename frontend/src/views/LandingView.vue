@@ -35,10 +35,10 @@ const features = [
     <nav class="max-w-7xl mx-auto flex items-center justify-between px-6 py-5">
       <div class="flex items-center gap-2.5">
         <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">
-          FC
+          FF
         </div>
         <span class="font-bold text-xl">
-          Freight<span class="text-primary-500">Calc</span>
+          Freight<span class="text-primary-500">Flow</span>
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -60,15 +60,15 @@ const features = [
         Дипломный проект · 2026
       </div>
       <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
-        Считайте стоимость рейсов
+        TMS для логистики,
         <br />
         <span class="bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 bg-clip-text text-transparent">
-          без калькулятора и Excel
+          которой удобно пользоваться
         </span>
       </h1>
       <p class="text-lg md:text-xl text-surface-600 dark:text-surface-400 max-w-2xl mx-auto mb-10">
-        TMS-система для диспетчеров: ставка, топливо, доплаты, маржа —
-        в одной форме. С историей, документами и аналитикой.
+        Расчет стоимости рейсов, ведение заявок, история расчетов, ролевая модель.
+        Все, что нужно диспетчеру — в одном приложении.
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3">
         <RouterLink to="/login">
@@ -100,7 +100,7 @@ const features = [
     <!-- Footer -->
     <footer class="border-t border-surface-200 dark:border-surface-800">
       <div class="max-w-7xl mx-auto px-6 py-8 text-sm text-surface-500 flex flex-wrap items-center justify-between gap-3">
-        <div>© 2026 Freight Calculator · Дипломная работа</div>
+        <div>© 2026 FreightFlow · Дипломная работа</div>
         <div>FastAPI · Vue 3 · PostgreSQL · Docker</div>
       </div>
     </footer>

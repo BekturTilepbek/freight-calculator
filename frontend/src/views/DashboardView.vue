@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import { ordersApi } from '@/api/orders'
 import Card from 'primevue/card'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
@@ -39,9 +39,9 @@ function fmtNumber(v) {
 async function load() {
   loading.value = true
   try {
-    const [{ data: s }, { data: orders }] = await Promise.all([
-      axios.get('/api/v1/orders/stats'),
-      axios.get('/api/v1/orders', { params: { limit: 5 } }),
+    const [s, orders] = await Promise.all([
+      ordersApi.stats(),
+      ordersApi.list({ limit: 5 }),
     ])
     stats.value = [
       { label: 'Активные рейсы',  value: fmtNumber(s.active_orders),       icon: 'pi pi-truck',      color: 'primary' },

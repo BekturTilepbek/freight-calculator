@@ -47,17 +47,16 @@ function quickLogin(email, password) {
       <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 80%, white 1px, transparent 1px); background-size: 50px 50px;"></div>
       <div class="relative z-10 flex flex-col justify-between p-12 text-white w-full">
         <RouterLink to="/" class="flex items-center gap-2.5 text-white">
-          <div class="w-10 h-10 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center font-bold">FC</div>
-          <span class="font-bold text-xl">FreightCalc</span>
+          <div class="w-10 h-10 rounded-lg bg-white/20 backdrop-blur flex items-center justify-center font-bold">FF</div>
+          <span class="font-bold text-xl">FreightFlow</span>
         </RouterLink>
 
         <div>
           <h2 class="text-4xl font-extrabold mb-4 leading-tight">
-            Управляйте грузоперевозками<br />эффективнее
+            Автоматизируйте свою<br />логистику
           </h2>
           <p class="text-white/80 text-lg mb-8 max-w-md">
-            Считайте стоимость рейсов, отслеживайте маржу, ведите историю заявок.
-            Все в одном месте.
+            FreightFlow — TMS для диспетчеров: расчет стоимости, маржа, история заявок.
           </p>
           <div class="flex flex-wrap gap-3">
             <div class="px-3 py-1.5 rounded-full bg-white/10 backdrop-blur text-sm font-medium">FastAPI</div>
@@ -83,8 +82,8 @@ function quickLogin(email, password) {
       <div class="w-full max-w-md">
         <div class="lg:hidden mb-8 text-center">
           <RouterLink to="/" class="inline-flex items-center gap-2.5">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">FC</div>
-            <span class="font-bold text-xl text-surface-900 dark:text-surface-0">FreightCalc</span>
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">FF</div>
+            <span class="font-bold text-xl text-surface-900 dark:text-surface-0">FreightFlow</span>
           </RouterLink>
         </div>
 

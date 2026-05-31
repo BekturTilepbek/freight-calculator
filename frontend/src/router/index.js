@@ -12,7 +12,7 @@ import OrderDetailView from '@/views/OrderDetailView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const routes = [
-  { path: '/',         name: 'landing',  component: LandingView,  meta: { title: 'Freight Calculator' } },
+  { path: '/',         name: 'landing',  component: LandingView,  meta: { title: 'FreightFlow' } },
   { path: '/login',    name: 'login',    component: LoginView,    meta: { title: 'Вход', guest: true } },
   { path: '/register', name: 'register', component: RegisterView, meta: { title: 'Регистрация', guest: true } },
   {
@@ -46,7 +46,7 @@ router.beforeEach((to) => {
 })
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} · Freight Calculator` : 'Freight Calculator'
+  document.title = to.meta.title ? `${to.meta.title} · FreightFlow` : 'FreightFlow'
 })
 
 export default router

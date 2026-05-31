@@ -66,10 +66,10 @@ const menu = [
       <!-- Logo -->
       <div class="h-16 flex items-center px-4 border-b border-surface-200 dark:border-surface-800">
         <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0">
-          FC
+          FF
         </div>
         <span v-if="sidebarOpen" class="ml-3 font-bold text-lg text-surface-900 dark:text-surface-0">
-          Freight<span class="text-primary-500">Calc</span>
+          Freight<span class="text-primary-500">Flow</span>
         </span>
       </div>
 

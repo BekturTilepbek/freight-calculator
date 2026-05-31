@@ -43,8 +43,8 @@ async function handleRegister() {
     <div class="w-full max-w-md">
       <div class="text-center mb-8">
         <RouterLink to="/" class="inline-flex items-center gap-2.5">
-          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">FC</div>
-          <span class="font-bold text-xl text-surface-900 dark:text-surface-0">FreightCalc</span>
+          <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold">FF</div>
+          <span class="font-bold text-xl text-surface-900 dark:text-surface-0">FreightFlow</span>
         </RouterLink>
       </div>
 
