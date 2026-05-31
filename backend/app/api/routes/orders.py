@@ -1,5 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from io import BytesIO
+from datetime import datetime
+from fastapi.responses import StreamingResponse
 
 from app.crud import order as crud_order
 from app.db.session import get_db
@@ -69,3 +72,131 @@ async def get_order_calculations(order_id: int, db: AsyncSession = Depends(get_d
     if not obj:
         raise HTTPException(404, "Order not found")
     return await crud_calc.get_by_order(db, order_id)
+
+@router.get("/my/assigned", response_model=list[OrderListItem])
+async def my_assigned_orders(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.DRIVER)),
+):
+    """Рейсы, назначенные на ТС текущего водителя."""
+    return await crud_order.get_for_driver(db, current_user.id)
+
+
+@router.patch("/{order_id}/status", response_model=OrderOut)
+async def driver_change_status(
+    order_id: int,
+    new_status: OrderStatus,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Смена статуса заявки. Водитель может менять только статусы своих рейсов
+    и только в ограниченном наборе (assigned → in_transit → delivered).
+    """
+    obj = await crud_order.get(db, order_id)
+    if not obj:
+        raise HTTPException(404, "Order not found")
+
+    # Если это водитель — проверяем, что рейс действительно его
+    if current_user.role == UserRole.DRIVER:
+        # Находим ТС водителя
+        from sqlalchemy import select
+        from app.models.vehicle import Vehicle
+        v_result = await db.execute(
+            select(Vehicle.id).where(Vehicle.driver_id == current_user.id)
+        )
+        vehicle_id = v_result.scalar_one_or_none()
+
+        if obj.vehicle_id != vehicle_id:
+            raise HTTPException(403, "Это не ваш рейс")
+
+        # Разрешенные переходы для водителя
+        allowed = {
+            OrderStatus.ASSIGNED: [OrderStatus.IN_TRANSIT],
+            OrderStatus.IN_TRANSIT: [OrderStatus.DELIVERED],
+        }
+        if new_status not in allowed.get(obj.status, []):
+            raise HTTPException(
+                400, f"Нельзя сменить статус с {obj.status} на {new_status}"
+            )
+
+    obj.status = new_status
+    await db.commit()
+    await db.refresh(obj)
+    return obj
+
+@router.get("/export/xlsx")
+async def export_orders_xlsx(
+    status_filter: OrderStatus | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Экспорт списка заявок в Excel-файл."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+
+    orders = await crud_order.get_all(db, limit=10000, status=status_filter)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Orders"
+
+    # Заголовок
+    headers = [
+        "№ заявки", "Откуда", "Куда", "Мили", "Ставка $/mi",
+        "Выручка $", "Груз", "Вес (lbs)", "Статус", "Создана",
+    ]
+    ws.append(headers)
+
+    # Стилизация шапки
+    header_fill = PatternFill("solid", fgColor="3B82F6")
+    header_font = Font(color="FFFFFF", bold=True)
+    for col_idx in range(1, len(headers) + 1):
+        cell = ws.cell(row=1, column=col_idx)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+    # Данные
+    status_labels = {
+        OrderStatus.DRAFT: "Черновик",
+        OrderStatus.ASSIGNED: "Назначен",
+        OrderStatus.IN_TRANSIT: "В пути",
+        OrderStatus.DELIVERED: "Доставлено",
+        OrderStatus.CANCELLED: "Отменен",
+    }
+
+    for o in orders:
+        revenue = float(o.distance_miles) * float(o.rate_per_mile)
+        ws.append([
+            o.order_number,
+            o.origin_address,
+            o.destination_address,
+            float(o.distance_miles),
+            float(o.rate_per_mile),
+            round(revenue, 2),
+            o.cargo_type or "",
+            float(o.weight_lbs) if o.weight_lbs else "",
+            status_labels.get(o.status, o.status),
+            o.created_at.strftime("%Y-%m-%d %H:%M"),
+        ])
+
+    # Авто-ширина колонок (примерная)
+    widths = [12, 28, 28, 10, 12, 14, 16, 12, 14, 18]
+    for i, w in enumerate(widths, start=1):
+        ws.column_dimensions[chr(64 + i)].width = w
+
+    # Закрепляем шапку
+    ws.freeze_panes = "A2"
+
+    # Сериализуем в память
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename = f"orders-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.xlsx"
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

@@ -75,3 +75,27 @@ async def get_stats(db: AsyncSession) -> dict:
         "total_distance_miles": float(total_distance),
         "total_revenue": float(total_revenue),
     }
+
+async def get_for_driver(db: AsyncSession, driver_user_id: int) -> list[Order]:
+    """
+    Возвращает рейсы, назначенные на ТС текущего водителя.
+    Цепочка: User → Vehicle (driver_id) → Order (vehicle_id).
+    """
+    from sqlalchemy.orm import selectinload
+    from app.models.vehicle import Vehicle
+
+    # Находим ТС водителя
+    v_result = await db.execute(
+        select(Vehicle.id).where(Vehicle.driver_id == driver_user_id)
+    )
+    vehicle_id = v_result.scalar_one_or_none()
+    if not vehicle_id:
+        return []
+
+    # Все заявки на это ТС
+    result = await db.execute(
+        select(Order)
+        .where(Order.vehicle_id == vehicle_id)
+        .order_by(Order.created_at.desc())
+    )
+    return list(result.scalars().all())

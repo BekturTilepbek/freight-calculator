@@ -66,13 +66,16 @@ async def seed():
             ("dispatcher@freight.app", "dispatcher123", "Дмитрий Диспетчер", UserRole.DISPATCHER),
             ("driver@freight.app", "driver123", "Виктор Водитель", UserRole.DRIVER),
         ]
+        users_created = []
         for email, password, name, role in users_data:
-            db.add(User(
+            u = User(
                 email=email,
                 password_hash=hash_password(password),
                 full_name=name,
                 role=role,
-            ))
+            )
+            db.add(u)
+            users_created.append(u)
 
         # Клиенты
         clients = []
@@ -91,12 +94,45 @@ async def seed():
         await db.flush()  # чтобы получить id
 
         # Заявки
+        await db.flush()  # чтобы получить id
+
+        # ===== ТС с привязкой к водителю =====
+        from app.models.vehicle import Vehicle
+
+        driver_user = next(u for u in users_created if u.role == UserRole.DRIVER)
+        dispatcher_user = next(u for u in users_created if u.role == UserRole.DISPATCHER)
+
+        vehicles_data = [
+            ("FRH-001", "Freightliner", "Cascadia", Decimal("6.5"), driver_user.id),
+            ("VLV-002", "Volvo", "VNL 860", Decimal("6.8"), None),
+            ("KEN-003", "Kenworth", "T680", Decimal("6.2"), None),
+        ]
+        vehicles = []
+        for plate, make, model, mpg, driver_id in vehicles_data:
+            v = Vehicle(
+                plate_number=plate, make=make, model=model,
+                fuel_consumption_mpg=mpg, driver_id=driver_id, is_active=True,
+            )
+            db.add(v)
+            vehicles.append(v)
+
+        await db.flush()
+
+        # ===== Заявки =====
+        driver_vehicle = vehicles[0]  # ТС нашего тестового водителя
+
         for i in range(1, 41):
             origin, dest, distance = choice(ROUTES)
             rate = Decimal(str(round(uniform(1.2, 2.5), 2)))
             created = datetime.utcnow() - timedelta(days=randint(0, 60))
             pickup = created.date() + timedelta(days=1)
             delivery = pickup + timedelta(days=randint(1, 5))
+            status = choice(STATUSES_WEIGHTED)
+
+            # Каждая 4-я активная заявка — назначена на нашего водителя
+            assign_to_driver = i % 4 == 0 and status in (
+                OrderStatus.ASSIGNED, OrderStatus.IN_TRANSIT, OrderStatus.DELIVERED
+            )
 
             order = Order(
                 order_number=f"FR-{1000 + i}",
@@ -108,20 +144,19 @@ async def seed():
                 weight_lbs=Decimal(str(randint(5000, 45000))),
                 pickup_date=pickup,
                 delivery_date=delivery,
-                status=choice(STATUSES_WEIGHTED),
+                status=status,
                 client_id=choice(clients).id,
                 broker_id=choice(brokers).id,
+                dispatcher_id=dispatcher_user.id,
+                vehicle_id=driver_vehicle.id if assign_to_driver else None,
                 created_at=created,
                 updated_at=created,
             )
             db.add(order)
 
         await db.commit()
-        print(f"✅ Создано: 3 пользователя, {len(CLIENTS)} клиентов, {len(BROKERS)} брокеров, 40 заявок")
-        print("\n🔑 Тестовые учетные записи:")
-        print("   admin@freight.app      / admin123      (Администратор)")
-        print("   dispatcher@freight.app / dispatcher123 (Диспетчер)")
-        print("   driver@freight.app     / driver123     (Водитель)")
+        print(
+            f"✅ Создано: 3 пользователя, {len(CLIENTS)} клиентов, {len(BROKERS)} брокеров, {len(vehicles_data)} ТС, 40 заявок")
 
 
 if __name__ == "__main__":

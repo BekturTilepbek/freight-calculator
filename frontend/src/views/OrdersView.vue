@@ -59,6 +59,36 @@ function newOrder() {
 }
 
 onMounted(load)
+
+import api from '@/api/index'
+
+const exporting = ref(false)
+
+async function exportXlsx() {
+  exporting.value = true
+  try {
+    const response = await api.get('/orders/export/xlsx', {
+      responseType: 'blob',
+      params: statusFilter.value ? { status_filter: statusFilter.value } : {},
+    })
+    // Создаем временную ссылку и скачиваем
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `orders-${new Date().toISOString().slice(0, 10)}.xlsx`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    exporting.value = false
+  }
+}
 </script>
 
 <template>
@@ -74,6 +104,14 @@ onMounted(load)
         </h2>
       </div>
       <div class="flex items-center gap-2">
+        <Button
+          label="Экспорт в Excel"
+          icon="pi pi-file-excel"
+          severity="success"
+          outlined
+          @click="exportXlsx"
+          :loading="exporting"
+        />
         <Button
           label="Обновить"
           icon="pi pi-refresh"

@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import LandingView from '@/views/LandingView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
-import DashboardView from '@/views/DashboardView.vue'
+import DashboardRouterView from '@/views/DashboardRouterView.vue'
 import CalculatorView from '@/views/CalculatorView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import OrderDetailView from '@/views/OrderDetailView.vue'
@@ -24,7 +24,7 @@ const routes = [
     meta: { requiresAuth: true },
     children: [
       { path: '', redirect: { name: 'dashboard' } },
-      { path: 'dashboard',   name: 'dashboard',    component: DashboardView,   meta: { title: 'Дашборд' } },
+      { path: 'dashboard',   name: 'dashboard',    component: DashboardRouterView,   meta: { title: 'Дашборд' } },
       { path: 'calculator',  name: 'calculator',   component: CalculatorView,  meta: { title: 'Калькулятор' } },
       { path: 'orders',      name: 'orders',       component: OrdersView,      meta: { title: 'Заявки' } },
       { path: 'orders/:id',  name: 'order-detail', component: OrderDetailView, meta: { title: 'Заявка' }, props: true },

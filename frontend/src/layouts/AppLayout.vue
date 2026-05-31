@@ -43,15 +43,25 @@ function onClickOutside(e) {
 onMounted(() => document.addEventListener('click', onClickOutside))
 onUnmounted(() => document.removeEventListener('click', onClickOutside))
 
-const menu = [
-  { label: 'Дашборд',     icon: 'pi pi-th-large',   to: '/app/dashboard' },
-  { label: 'Калькулятор', icon: 'pi pi-calculator', to: '/app/calculator' },
-  { label: 'Заявки',      icon: 'pi pi-truck',      to: '/app/orders' },
-  { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients' },
-  { label: 'Брокеры',     icon: 'pi pi-briefcase',  to: '/app/brokers' },
-  { label: 'Транспорт',   icon: 'pi pi-car',        to: '/app/vehicles' },
-  { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports', disabled: true },
-]
+const isDriver = computed(() => auth.user?.role === 'driver')
+
+const menu = computed(() => {
+  if (isDriver.value) {
+    // Водителю — только дашборд с его рейсами
+    return [
+      { label: 'Мои рейсы', icon: 'pi pi-truck', to: '/app/dashboard' },
+    ]
+  }
+  return [
+    { label: 'Дашборд',     icon: 'pi pi-th-large',   to: '/app/dashboard' },
+    { label: 'Калькулятор', icon: 'pi pi-calculator', to: '/app/calculator' },
+    { label: 'Заявки',      icon: 'pi pi-truck',      to: '/app/orders' },
+    { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients' },
+    { label: 'Брокеры',     icon: 'pi pi-briefcase',  to: '/app/brokers' },
+    { label: 'Транспорт',   icon: 'pi pi-car',        to: '/app/vehicles' },
+    { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports', disabled: true },
+  ]
+})
 </script>
 
 <template>
