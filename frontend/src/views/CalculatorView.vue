@@ -11,7 +11,11 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Dialog from 'primevue/dialog'
 import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
+import DatePicker from 'primevue/datepicker'
+import Select from 'primevue/select'
 
+import { clientsApi } from '@/api/clients'
+import { brokersApi } from '@/api/brokers'
 import { calculationsApi } from '@/api/calculations'
 import { fmtMoney } from '@/composables/useFormatters'
 
@@ -35,6 +39,26 @@ const saveForm = reactive({
   origin_address: '',
   destination_address: '',
   cargo_type: '',
+  client_id: null,
+  broker_id: null,
+  weight_lbs: null,
+  pickup_date: null,
+  delivery_date: null,
+})
+
+const clients = ref([])
+const brokers = ref([])
+
+// Загружаем справочники на старте — для dropdown-ов
+import { onMounted } from 'vue'
+onMounted(async () => {
+  try {
+    const [c, b] = await Promise.all([clientsApi.list(), brokersApi.list()])
+    clients.value = c
+    brokers.value = b
+  } catch (e) {
+    console.warn('Не удалось загрузить справочники:', e)
+  }
 })
 
 async function calculate() {
@@ -68,11 +92,17 @@ async function saveAsOrder() {
   }
   saving.value = true
   try {
+    const toISODate = (d) => d ? d.toISOString().split('T')[0] : null
     const created = await calculationsApi.saveAsOrder({
       calculation: form,
       origin_address: saveForm.origin_address,
       destination_address: saveForm.destination_address,
       cargo_type: saveForm.cargo_type || null,
+      client_id: saveForm.client_id || null,
+      broker_id: saveForm.broker_id || null,
+      weight_lbs: saveForm.weight_lbs || null,
+      pickup_date: toISODate(saveForm.pickup_date),
+      delivery_date: toISODate(saveForm.delivery_date),
     })
     toast.add({
       severity: 'success', summary: 'Заявка создана',
@@ -274,38 +304,111 @@ const marginColor = computed(() => {
   <Dialog
     v-model:visible="showSaveDialog"
     modal header="Сохранить как заявку"
-    :style="{ width: '500px' }"
+    :style="{ width: '600px' }"
     :closable="!saving"
   >
     <div class="space-y-4">
       <p class="text-sm text-surface-600 dark:text-surface-400">
-        Заявка будет создана со статусом «Черновик». Текущий расчет будет привязан к ней.
+        Заявка будет создана со статусом «Черновик». Текущий расчет привяжется к ней.
       </p>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Откуда *</label>
-        <InputText
-          v-model="saveForm.origin_address"
-          placeholder="Chicago, IL"
-          class="w-full"
-        />
+
+      <!-- Адреса (обязательные) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Откуда *</label>
+          <InputText
+            v-model="saveForm.origin_address"
+            placeholder="Chicago, IL"
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Куда *</label>
+          <InputText
+            v-model="saveForm.destination_address"
+            placeholder="Dallas, TX"
+            class="w-full"
+          />
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Куда *</label>
-        <InputText
-          v-model="saveForm.destination_address"
-          placeholder="Dallas, TX"
-          class="w-full"
-        />
+
+      <!-- Контрагенты -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Клиент</label>
+          <Select
+            v-model="saveForm.client_id"
+            :options="clients"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Не выбран"
+            class="w-full"
+            showClear
+            filter
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Брокер</label>
+          <Select
+            v-model="saveForm.broker_id"
+            :options="brokers"
+            optionLabel="company_name"
+            optionValue="id"
+            placeholder="Не выбран"
+            class="w-full"
+            showClear
+            filter
+          />
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium mb-1.5">Тип груза</label>
-        <InputText
-          v-model="saveForm.cargo_type"
-          placeholder="Electronics, Food, ..."
-          class="w-full"
-        />
+
+      <!-- Груз -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Тип груза</label>
+          <InputText
+            v-model="saveForm.cargo_type"
+            placeholder="Electronics, Food, ..."
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Вес (lbs)</label>
+          <InputNumber
+            v-model="saveForm.weight_lbs"
+            :min="0"
+            :max="100000"
+            placeholder="0"
+            class="w-full"
+          />
+        </div>
+      </div>
+
+      <!-- Даты -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Дата забора</label>
+          <DatePicker
+            v-model="saveForm.pickup_date"
+            dateFormat="yy-mm-dd"
+            placeholder="ГГГГ-ММ-ДД"
+            showIcon
+            class="w-full"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1.5">Дата доставки</label>
+          <DatePicker
+            v-model="saveForm.delivery_date"
+            dateFormat="yy-mm-dd"
+            placeholder="ГГГГ-ММ-ДД"
+            showIcon
+            class="w-full"
+          />
+        </div>
       </div>
     </div>
+
     <template #footer>
       <Button
         label="Отмена" severity="secondary" text

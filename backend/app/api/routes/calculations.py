@@ -49,6 +49,8 @@ class CalculationResponse(BaseModel):
     breakdown: List[CostComponentOut]
 
 
+from datetime import date
+
 class SaveAsOrderRequest(BaseModel):
     """Сохранение расчета как новой заявки."""
     calculation: CalculationRequest
@@ -57,6 +59,9 @@ class SaveAsOrderRequest(BaseModel):
     cargo_type: str | None = None
     client_id: int | None = None
     broker_id: int | None = None
+    weight_lbs: Decimal | None = None
+    pickup_date: date | None = None
+    delivery_date: date | None = None
 
 
 # --- Helpers ---
@@ -116,6 +121,9 @@ async def save_as_order(
         cargo_type=payload.cargo_type,
         client_id=payload.client_id,
         broker_id=payload.broker_id,
+        weight_lbs=payload.weight_lbs,
+        pickup_date=payload.pickup_date,
+        delivery_date=payload.delivery_date,
         status=OrderStatus.DRAFT,
     )
     db.add(order)

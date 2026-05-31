@@ -59,7 +59,6 @@ const menu = computed(() => {
     { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients' },
     { label: 'Брокеры',     icon: 'pi pi-briefcase',  to: '/app/brokers' },
     { label: 'Транспорт',   icon: 'pi pi-car',        to: '/app/vehicles' },
-    { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports', disabled: true },
   ]
 })
 </script>
@@ -134,7 +133,6 @@ const menu = computed(() => {
             text rounded severity="secondary"
             @click="toggle"
           />
-          <Button icon="pi pi-bell" text rounded severity="secondary" />
 
           <!-- Меню пользователя -->
           <div class="relative" ref="userMenuRef">
