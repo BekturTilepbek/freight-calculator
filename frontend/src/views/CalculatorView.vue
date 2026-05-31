@@ -13,6 +13,8 @@ import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 import DatePicker from 'primevue/datepicker'
 import Select from 'primevue/select'
+import RouteMap from '@/components/RouteMap.vue'
+import { geoApi } from '@/api/geo'
 
 import { clientsApi } from '@/api/clients'
 import { brokersApi } from '@/api/brokers'
@@ -28,6 +30,36 @@ const form = reactive({
   fuel_consumption_mpg: 6.5,
   fuel_price_per_gallon: 3.80,
 })
+
+const route = reactive({
+  origin: '',
+  destination: '',
+})
+const routeData = ref(null)        // ответ от /geo/route
+const routeLoading = ref(false)
+const routeError = ref(null)
+
+async function findRoute() {
+  if (!route.origin.trim() || !route.destination.trim()) {
+    routeError.value = 'Заполните оба адреса'
+    return
+  }
+  routeLoading.value = true
+  routeError.value = null
+  try {
+    const data = await geoApi.route(route.origin, route.destination)
+    routeData.value = data
+    // Автоматически подставляем дистанцию в форму калькулятора
+    form.distance_miles = data.distance_miles
+    // И запоминаем адреса, чтобы при сохранении заявки они уже были
+    saveForm.origin_address = data.origin.display_name
+    saveForm.destination_address = data.destination.display_name
+  } catch (e) {
+    routeError.value = e.response?.data?.detail || 'Не удалось построить маршрут'
+  } finally {
+    routeLoading.value = false
+  }
+}
 
 const result = ref(null)
 const loading = ref(false)
@@ -146,6 +178,67 @@ const marginColor = computed(() => {
         </template>
         <template #content>
           <div class="space-y-4">
+            <!-- Маршрут с автодистанцией -->
+            <div class="space-y-3 pb-4 border-b border-surface-200 dark:border-surface-800">
+              <div class="flex items-center gap-2 text-xs uppercase tracking-wide text-surface-500">
+                <i class="pi pi-map" />
+                Маршрут
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Откуда</label>
+                <InputText
+                  v-model="route.origin"
+                  placeholder="Chicago, IL"
+                  class="w-full"
+                  @keyup.enter="findRoute"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium mb-1.5">Куда</label>
+                <InputText
+                  v-model="route.destination"
+                  placeholder="Dallas, TX"
+                  class="w-full"
+                  @keyup.enter="findRoute"
+                />
+              </div>
+
+              <Button
+                label="Найти маршрут"
+                icon="pi pi-search"
+                severity="secondary"
+                outlined
+                class="w-full"
+                :loading="routeLoading"
+                @click="findRoute"
+              />
+
+              <div
+                v-if="routeError"
+                class="p-2 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded"
+              >
+                {{ routeError }}
+              </div>
+
+              <!-- Информация о найденном маршруте -->
+              <div
+                v-if="routeData"
+                class="p-3 rounded-lg bg-primary-50 dark:bg-primary-950 text-sm space-y-1"
+              >
+                <div class="flex justify-between">
+                  <span class="text-surface-600 dark:text-surface-400">Дистанция:</span>
+                  <span class="font-semibold">{{ routeData.distance_miles }} миль</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-surface-600 dark:text-surface-400">Время в пути:</span>
+                  <span class="font-semibold">
+                    {{ Math.floor(routeData.duration_minutes / 60) }} ч {{ routeData.duration_minutes % 60 }} мин
+                  </span>
+                </div>
+              </div>
+            </div>
             <div>
               <label class="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-1.5">
                 Дистанция, миль
@@ -218,6 +311,24 @@ const marginColor = computed(() => {
 
     <!-- Результат -->
     <div class="lg:col-span-3">
+      <Card v-if="routeData" class="mb-4">
+        <template #title>
+          <div class="flex items-center justify-between">
+            <span class="text-lg font-semibold">Маршрут на карте</span>
+            <span class="text-sm text-surface-500 font-normal">
+              {{ routeData.distance_miles }} mi · {{ Math.floor(routeData.duration_minutes / 60) }}ч
+            </span>
+          </div>
+        </template>
+        <template #content>
+          <RouteMap
+            :origin="routeData.origin"
+            :destination="routeData.destination"
+            :geometry="routeData.geometry"
+            height="280px"
+          />
+        </template>
+      </Card>
       <Card class="h-full">
         <template #title>
           <div class="flex items-center justify-between">

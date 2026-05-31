@@ -15,6 +15,8 @@ import { vehiclesApi } from '@/api/vehicles'
 import {
   fmtMoney, fmtNumber, fmtDate, fmtDateTime, STATUS_MAP,
 } from '@/composables/useFormatters'
+import RouteMap from '@/components/RouteMap.vue'
+import { geoApi } from '@/api/geo'
 
 const props = defineProps({ id: { type: [String, Number], required: true } })
 const router = useRouter()
@@ -42,6 +44,26 @@ const assignedVehicle = computed(() => {
   if (!order.value?.vehicle_id) return null
   return vehicles.value.find(v => v.id === order.value.vehicle_id) || null
 })
+
+const routeData = ref(null)
+const routeLoading = ref(false)
+const routeError = ref(null)
+
+async function loadRoute() {
+  if (!order.value) return
+  routeLoading.value = true
+  routeError.value = null
+  try {
+    routeData.value = await geoApi.route(
+      order.value.origin_address,
+      order.value.destination_address,
+    )
+  } catch (e) {
+    routeError.value = e.response?.data?.detail || 'Не удалось построить маршрут'
+  } finally {
+    routeLoading.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -207,6 +229,43 @@ onMounted(load)
               <div>
                 <div class="text-xs text-surface-500 mb-1">Вес</div>
                 <div class="font-semibold">{{ order.weight_lbs ? `${fmtNumber(order.weight_lbs)} lbs` : '—' }}</div>
+              </div>
+            </div>
+
+            <!-- Карта маршрута -->
+            <Divider />
+
+            <div v-if="!routeData && !routeLoading" class="text-center">
+              <Button
+                label="Показать на карте"
+                icon="pi pi-map"
+                severity="secondary"
+                outlined
+                @click="loadRoute"
+              />
+            </div>
+
+            <div v-if="routeLoading" class="flex justify-center py-8">
+              <ProgressSpinner style="width: 40px; height: 40px" />
+            </div>
+
+            <div
+              v-if="routeError"
+              class="p-3 text-sm bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 rounded"
+            >
+              {{ routeError }}
+            </div>
+
+            <div v-if="routeData">
+              <RouteMap
+                :origin="routeData.origin"
+                :destination="routeData.destination"
+                :geometry="routeData.geometry"
+                height="300px"
+              />
+              <div class="mt-2 text-sm text-surface-500 flex justify-between">
+                <span>Расчетная дистанция: <strong>{{ routeData.distance_miles }} миль</strong></span>
+                <span>В пути: ~{{ Math.floor(routeData.duration_minutes / 60) }}ч {{ routeData.duration_minutes % 60 }}мин</span>
               </div>
             </div>
           </div>

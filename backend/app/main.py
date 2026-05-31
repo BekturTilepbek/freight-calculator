@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import auth, calculations, clients, brokers, vehicles, orders, users
+from app.api.routes import auth, calculations, clients, brokers, vehicles, orders, users, geo
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -21,6 +21,7 @@ app.include_router(brokers.router, prefix=settings.API_V1_PREFIX)
 app.include_router(vehicles.router, prefix=settings.API_V1_PREFIX)
 app.include_router(calculations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders.router, prefix=settings.API_V1_PREFIX)
+app.include_router(geo.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
