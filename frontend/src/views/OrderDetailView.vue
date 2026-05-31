@@ -7,9 +7,11 @@ import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import ProgressSpinner from 'primevue/progressspinner'
 import Divider from 'primevue/divider'
+import Toast from 'primevue/toast'
 import { useToast } from 'primevue/usetoast'
 
 import { ordersApi } from '@/api/orders'
+import { vehiclesApi } from '@/api/vehicles'
 import {
   fmtMoney, fmtNumber, fmtDate, fmtDateTime, STATUS_MAP,
 } from '@/composables/useFormatters'
@@ -20,8 +22,10 @@ const toast = useToast()
 
 const order = ref(null)
 const calculations = ref([])
+const vehicles = ref([])
 const loading = ref(true)
 const updatingStatus = ref(false)
+const updatingVehicle = ref(false)
 
 const statusOptions = Object.entries(STATUS_MAP).map(([k, v]) => ({
   label: v.label, value: k,
@@ -34,15 +38,22 @@ const revenue = computed(() => {
 
 const latestCalc = computed(() => calculations.value[0] || null)
 
+const assignedVehicle = computed(() => {
+  if (!order.value?.vehicle_id) return null
+  return vehicles.value.find(v => v.id === order.value.vehicle_id) || null
+})
+
 async function load() {
   loading.value = true
   try {
-    const [o, c] = await Promise.all([
+    const [o, c, v] = await Promise.all([
       ordersApi.get(props.id),
       ordersApi.calculations(props.id),
+      vehiclesApi.list(),
     ])
     order.value = o
     calculations.value = c
+    vehicles.value = v
   } catch (e) {
     toast.add({
       severity: 'error', summary: 'Ошибка',
@@ -64,10 +75,36 @@ async function changeStatus(newStatus) {
     })
   } catch {
     toast.add({
-      severity: 'error', summary: 'Ошибка', detail: 'Не удалось обновить', life: 3000,
+      severity: 'error', summary: 'Ошибка',
+      detail: 'Не удалось обновить', life: 3000,
     })
   } finally {
     updatingStatus.value = false
+  }
+}
+
+async function assignVehicle(vehicleId) {
+  if (vehicleId === order.value.vehicle_id) return
+  updatingVehicle.value = true
+  try {
+    const updates = { vehicle_id: vehicleId }
+    // Auto-transition draft → assigned when vehicle is picked
+    if (vehicleId && order.value.status === 'draft') {
+      updates.status = 'assigned'
+    }
+    order.value = await ordersApi.update(props.id, updates)
+    toast.add({
+      severity: 'success',
+      summary: vehicleId ? 'ТС назначено' : 'ТС снято с заявки',
+      life: 2000,
+    })
+  } catch (e) {
+    toast.add({
+      severity: 'error', summary: 'Ошибка',
+      detail: e.response?.data?.detail || 'Не удалось назначить', life: 3000,
+    })
+  } finally {
+    updatingVehicle.value = false
   }
 }
 
@@ -176,45 +213,109 @@ onMounted(load)
         </template>
       </Card>
 
-      <!-- Финансы -->
-      <Card>
-        <template #title>Финансы</template>
-        <template #content>
-          <div class="space-y-3">
-            <div class="p-4 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900">
-              <div class="text-sm text-primary-700 dark:text-primary-300 mb-1">Выручка</div>
-              <div class="text-3xl font-extrabold text-primary-700 dark:text-primary-200">
-                {{ fmtMoney(revenue) }}
+      <!-- Правая колонка: Исполнитель + Финансы -->
+      <div class="space-y-4">
+        <!-- Исполнитель -->
+        <Card>
+          <template #title>
+            <span class="text-sm font-semibold uppercase tracking-wide text-surface-500">
+              Исполнитель
+            </span>
+          </template>
+          <template #content>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-surface-500 mb-1.5">
+                  Транспортное средство
+                </label>
+                <Select
+                  :modelValue="order.vehicle_id"
+                  :options="vehicles"
+                  optionLabel="plate_number"
+                  optionValue="id"
+                  placeholder="Не назначено"
+                  class="w-full"
+                  showClear
+                  :loading="updatingVehicle"
+                  @update:modelValue="assignVehicle"
+                >
+                  <template #option="{ option }">
+                    <div>
+                      <div class="font-mono font-semibold">{{ option.plate_number }}</div>
+                      <div class="text-xs text-surface-500">
+                        {{ option.make }} {{ option.model }}
+                        <span v-if="option.driver">· {{ option.driver.full_name }}</span>
+                        <span v-else class="text-orange-500">· без водителя</span>
+                      </div>
+                    </div>
+                  </template>
+                </Select>
               </div>
-            </div>
 
-            <template v-if="latestCalc">
-              <div class="flex items-center justify-between py-2">
-                <span class="text-sm text-surface-600 dark:text-surface-400">Топливо</span>
-                <span class="font-semibold text-red-500">−{{ fmtMoney(latestCalc.fuel_cost) }}</span>
+              <div v-if="assignedVehicle?.driver" class="p-3 rounded-lg bg-surface-50 dark:bg-surface-800">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold">
+                    {{ assignedVehicle.driver.full_name?.split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase() }}
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-sm truncate">{{ assignedVehicle.driver.full_name }}</div>
+                    <div class="text-xs text-surface-500 truncate">{{ assignedVehicle.driver.email }}</div>
+                  </div>
+                </div>
               </div>
-              <div v-if="Number(latestCalc.extra_costs_total) > 0" class="flex items-center justify-between py-2">
-                <span class="text-sm text-surface-600 dark:text-surface-400">Доп. расходы</span>
-                <span class="font-semibold text-red-500">−{{ fmtMoney(latestCalc.extra_costs_total) }}</span>
+
+              <div v-else-if="assignedVehicle" class="p-3 rounded-lg bg-orange-50 dark:bg-orange-950 text-orange-700 dark:text-orange-400 text-sm flex items-center gap-2">
+                <i class="pi pi-exclamation-triangle" />
+                У этого ТС не назначен водитель
               </div>
-              <Divider class="!my-2" />
-              <div class="flex items-center justify-between py-1">
-                <span class="font-semibold">Прибыль</span>
-                <span class="text-lg font-bold text-green-600 dark:text-green-400">
-                  {{ fmtMoney(latestCalc.net_profit) }}
-                </span>
+
+              <div v-else class="text-sm text-surface-500 italic">
+                Назначьте ТС — водитель увидит заявку у себя.
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-sm text-surface-600 dark:text-surface-400">Маржа</span>
-                <span class="font-semibold">{{ Number(latestCalc.margin_percent).toFixed(1) }}%</span>
-              </div>
-            </template>
-            <div v-else class="text-sm text-surface-500 italic">
-              Расчет не сохранен. Откройте калькулятор для расчета прибыли.
             </div>
-          </div>
-        </template>
-      </Card>
+          </template>
+        </Card>
+
+        <!-- Финансы -->
+        <Card>
+          <template #title>Финансы</template>
+          <template #content>
+            <div class="space-y-3">
+              <div class="p-4 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900">
+                <div class="text-sm text-primary-700 dark:text-primary-300 mb-1">Выручка</div>
+                <div class="text-3xl font-extrabold text-primary-700 dark:text-primary-200">
+                  {{ fmtMoney(revenue) }}
+                </div>
+              </div>
+
+              <template v-if="latestCalc">
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Топливо</span>
+                  <span class="font-semibold text-red-500">−{{ fmtMoney(latestCalc.fuel_cost) }}</span>
+                </div>
+                <div v-if="Number(latestCalc.extra_costs_total) > 0" class="flex items-center justify-between py-2">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Доп. расходы</span>
+                  <span class="font-semibold text-red-500">−{{ fmtMoney(latestCalc.extra_costs_total) }}</span>
+                </div>
+                <Divider class="!my-2" />
+                <div class="flex items-center justify-between py-1">
+                  <span class="font-semibold">Прибыль</span>
+                  <span class="text-lg font-bold text-green-600 dark:text-green-400">
+                    {{ fmtMoney(latestCalc.net_profit) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-surface-600 dark:text-surface-400">Маржа</span>
+                  <span class="font-semibold">{{ Number(latestCalc.margin_percent).toFixed(1) }}%</span>
+                </div>
+              </template>
+              <div v-else class="text-sm text-surface-500 italic">
+                Расчет не сохранен.
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
     </div>
 
     <!-- История расчетов -->
