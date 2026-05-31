@@ -8,6 +8,9 @@ import DashboardView from '@/views/DashboardView.vue'
 import CalculatorView from '@/views/CalculatorView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import OrderDetailView from '@/views/OrderDetailView.vue'
+import ClientsView from '@/views/ClientsView.vue'
+import BrokersView from '@/views/BrokersView.vue'
+import VehiclesView from '@/views/VehiclesView.vue'
 
 import { useAuthStore } from '@/stores/auth'
 
@@ -25,6 +28,9 @@ const routes = [
       { path: 'calculator',  name: 'calculator',   component: CalculatorView,  meta: { title: 'Калькулятор' } },
       { path: 'orders',      name: 'orders',       component: OrdersView,      meta: { title: 'Заявки' } },
       { path: 'orders/:id',  name: 'order-detail', component: OrderDetailView, meta: { title: 'Заявка' }, props: true },
+      { path: 'clients',   name: 'clients',   component: ClientsView,  meta: { title: 'Клиенты' } },
+      { path: 'brokers',   name: 'brokers',   component: BrokersView,  meta: { title: 'Брокеры' } },
+      { path: 'vehicles',  name: 'vehicles',  component: VehiclesView, meta: { title: 'Транспорт' } },
     ],
   },
 ]

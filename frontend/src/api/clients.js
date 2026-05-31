@@ -1,6 +1,9 @@
 import api from './index'
 
 export const clientsApi = {
-  list: (params = {}) => api.get('/clients', { params }).then(r => r.data),
+  list: () => api.get('/clients').then(r => r.data),
   get: (id) => api.get(`/clients/${id}`).then(r => r.data),
+  create: (data) => api.post('/clients', data).then(r => r.data),
+  update: (id, data) => api.patch(`/clients/${id}`, data).then(r => r.data),
+  remove: (id) => api.delete(`/clients/${id}`),
 }

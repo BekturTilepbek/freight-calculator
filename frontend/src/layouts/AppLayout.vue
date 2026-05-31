@@ -47,9 +47,10 @@ const menu = [
   { label: 'Дашборд',     icon: 'pi pi-th-large',   to: '/app/dashboard' },
   { label: 'Калькулятор', icon: 'pi pi-calculator', to: '/app/calculator' },
   { label: 'Заявки',      icon: 'pi pi-truck',      to: '/app/orders' },
-  { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients',  disabled: true },
-  { label: 'Водители',    icon: 'pi pi-users',      to: '/app/drivers',  disabled: true },
-  { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports',  disabled: true },
+  { label: 'Клиенты',     icon: 'pi pi-building',   to: '/app/clients' },
+  { label: 'Брокеры',     icon: 'pi pi-briefcase',  to: '/app/brokers' },
+  { label: 'Транспорт',   icon: 'pi pi-car',        to: '/app/vehicles' },
+  { label: 'Отчеты',      icon: 'pi pi-chart-bar',  to: '/app/reports', disabled: true },
 ]
 </script>
 

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api.routes import auth, calculations, clients, orders
+from app.api.routes import auth, calculations, clients, brokers, vehicles, orders, users
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -15,8 +15,11 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
-app.include_router(calculations.router, prefix=settings.API_V1_PREFIX)
+app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(clients.router, prefix=settings.API_V1_PREFIX)
+app.include_router(brokers.router, prefix=settings.API_V1_PREFIX)
+app.include_router(vehicles.router, prefix=settings.API_V1_PREFIX)
+app.include_router(calculations.router, prefix=settings.API_V1_PREFIX)
 app.include_router(orders.router, prefix=settings.API_V1_PREFIX)
 
 
