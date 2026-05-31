@@ -200,3 +200,65 @@ async def export_orders_xlsx(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+@router.get("/analytics/summary")
+async def orders_analytics(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Агрегированная аналитика для дашборда."""
+    from sqlalchemy import func, select
+    from app.models.order import Order
+
+    # 1. Выручка и кол-во заявок по месяцам
+    monthly_q = (
+        select(
+            func.date_trunc('month', Order.created_at).label('month'),
+            func.coalesce(func.sum(Order.distance_miles * Order.rate_per_mile), 0).label('revenue'),
+            func.count(Order.id).label('count'),
+        )
+        .group_by('month')
+        .order_by('month')
+    )
+    monthly_result = await db.execute(monthly_q)
+    monthly = [
+        {
+            "month": row.month.strftime("%Y-%m"),
+            "revenue": float(row.revenue),
+            "count": row.count,
+        }
+        for row in monthly_result
+    ]
+
+    # 2. Распределение по статусам
+    status_q = select(Order.status, func.count(Order.id)).group_by(Order.status)
+    status_result = await db.execute(status_q)
+    status_counts = {status.value: count for status, count in status_result}
+
+    # 3. Топ-5 маршрутов
+    routes_q = (
+        select(
+            Order.origin_address,
+            Order.destination_address,
+            func.count(Order.id).label('count'),
+            func.coalesce(func.sum(Order.distance_miles * Order.rate_per_mile), 0).label('revenue'),
+        )
+        .group_by(Order.origin_address, Order.destination_address)
+        .order_by(func.count(Order.id).desc())
+        .limit(5)
+    )
+    routes_result = await db.execute(routes_q)
+    top_routes = [
+        {
+            "route": f"{r.origin_address} → {r.destination_address}",
+            "count": r.count,
+            "revenue": float(r.revenue),
+        }
+        for r in routes_result
+    ]
+
+    return {
+        "monthly": monthly,
+        "status_counts": status_counts,
+        "top_routes": top_routes,
+    }

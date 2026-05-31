@@ -8,6 +8,7 @@ export const ordersApi = {
   remove: (id) => api.delete(`/orders/${id}`),
   stats: () => api.get('/orders/stats').then(r => r.data),
   calculations: (id) => api.get(`/orders/${id}/calculations`).then(r => r.data),
+  analytics: () => api.get('/orders/analytics/summary').then(r => r.data),
   // Driver-specific
   myAssigned: () => api.get('/orders/my/assigned').then(r => r.data),
   changeStatus: (id, newStatus) =>
